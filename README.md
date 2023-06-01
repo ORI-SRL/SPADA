@@ -28,6 +28,7 @@ SPADA (**S**oft **P**neumatic **A**ctuator **D**esign fr**A**mework) is a toolbo
 
 ## Setup
 To set up and run SPADA, follow these steps:
+
 0. Make sure your system meets the requirements
 1. Clone and install this repository
 2. Open COMSOL Multiphysics Matlab Livelink
