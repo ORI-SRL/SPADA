@@ -36,7 +36,7 @@ To set up and run SPADA, follow these steps:
 4. Execute the app.mlapp file to run the SPADA application.
 
 ## Explore the examples
-To explore the examples provided in SPADA, you can refer to the following:
+To explore the examples provided in SPADA, you can refer to the following folders:
 - FEM Datasets: The "DataSet_Agilus30.mat" file contains a dataset for the Agilus30 material.
 - Input Shapes: There is a collection of example shapes available in ".mat" files. These files contain the sequential 3D coordinates of points that define the desired shapes. Additionally, you will find corresponding ".m" files that provide code to generate those shapes programmatically.
 - CAD: A set of CAD files is available that correspond to the input shapes, provided in the ".stl" format.
