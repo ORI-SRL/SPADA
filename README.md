@@ -1,5 +1,5 @@
 # SPADA
-SPADA (**S**oft __P__neumatic __A__ctuator __D__esign __f__rAmework) is a toolbox developed to facilitate the design, simulation and optimisation of bellow soft pneumatic actuctors (bellow-SPAs) for shape matching. It consists of two tabs: simulation and optimisation. 
+SPADA (**S**oft **P**neumatic **A**ctuator **D**esign fr**A**mework) is a toolbox developed to facilitate the design, simulation and optimisation of bellow soft pneumatic actuctors (bellow-SPAs) for shape matching. It consists of two tabs: simulation and optimisation. 
 - Simulation:
   - Design bellow-SPAs by tunning geometric parameters, stacking modules and defining material properties.
   - Use background COMSOL Finite Elment Method (FEM) to simulate the deformation of the designed bellow-SPA based on the input interal pressure. It also provides information on material stress and strain of modules.
