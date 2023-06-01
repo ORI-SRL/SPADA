@@ -46,13 +46,15 @@ To view a demonstration of SPADA and some designed actuators in action, please r
 
 ## Citation
 When citing SPADA, use this citation:
-@misc{yao2023spada,
-      title={SPADA: A Toolbox of Designing Soft Pneumatic Actuators for Shape Matching based on the Surrogate Model}, 
-      author={Yao Yao and Liang He and Perla Maiolino},
-      year={2023},
-      eprint={2305.19509},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
-}
+
+> @misc{yao2023spada,
+>       title={SPADA: A Toolbox of Designing Soft Pneumatic Actuators for Shape Matching based on the Surrogate Model}, 
+>       author={Yao Yao and Liang He and Perla Maiolino},
+>       year={2023},
+>       eprint={2305.19509},
+>       archivePrefix={arXiv},
+>       primaryClass={cs.RO}
+> }
+
 Additionally, the following work provides guidance on optimisation algorithms that complement the SPADA toolbox:
 - Y. Yao, Y. Chen, L. He and P. Maiolino, "Design Optimization for Bellow Soft Pneumatic Actuators in Shape-Matching," 2023 IEEE International Conference on Soft Robotics (RoboSoft), Singapore, Singapore, 2023, pp. 1-7, doi: 10.1109/RoboSoft55895.2023.10121957.
