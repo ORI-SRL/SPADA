@@ -51,7 +51,7 @@ net.trainParam.OutputFcn = @(info) plotWindowPosition(info, windowPosition);
 net = train(net, X, y);
 
 % save net
-outputfile = fullfile(filepath, "NewANN.mat");
+outputfile = fullfile(pwd, "NewANN.mat");
 save(outputfile, 'net');
 output = "NewANN.mat";
 end
