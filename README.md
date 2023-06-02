@@ -61,3 +61,6 @@ When citing SPADA, use this citation:
 
 Additionally, the following work provides guidance on optimisation algorithms that complement the SPADA toolbox:
 - Y. Yao, Y. Chen, L. He and P. Maiolino, "Design Optimization for Bellow Soft Pneumatic Actuators in Shape-Matching," 2023 IEEE International Conference on Soft Robotics (RoboSoft), Singapore, Singapore, 2023, pp. 1-7, doi: 10.1109/RoboSoft55895.2023.10121957.
+
+## Contact
+For any inquiries, please email us at yao.yao@eng.ox.ac.uk
