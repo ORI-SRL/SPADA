@@ -21,7 +21,8 @@ N = []; % number of bellow in each segment
 
 for i = 1:(length(optVariable)-3)/2
     R = [R optVariable(3+(i-1)*2+1)];
-    l = [l optVariable(3+(i-1)*2+2)];
+    l = [l optVariable(3+(i-1)*2+2)]/4;
+    l = l*4;
     N = [N round(uniqueArc(i,1)/l(i))];
 end
 

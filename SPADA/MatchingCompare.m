@@ -21,6 +21,7 @@ P = optVariable(3); % Pa
 rm = [];
 l = [];
 optimal_angle = [];
+new_l = [];
 N = [];
 
 load NewANN.mat
@@ -28,7 +29,8 @@ for i = 1:(length(optVariable)-3)/2
     rm = [rm optVariable(3+(i-1)*2+1)];
     l = [l optVariable(3+(i-1)*2+2)];
     optimal_angle = [optimal_angle 2*sim(net,[ri, t, rm(end), l(end), P]')];
-    N = [N round(uniqueArc(i,1)/l(i))];
+    new_l = [new_l (l(end)/optimal_angle(end) + ri + t/2)*optimal_angle(end)];
+    N = [N round(uniqueArc(i,1)/new_l(end))];
 end
 
 new_curve = [];
@@ -48,7 +50,7 @@ for i = 1:size(PCC_result,2)
     else
         % arc segment
         arc_angle = optimal_angle(repeatIndex(j)) * N(repeatIndex(j));
-        arc_length = l(repeatIndex(j)) * N(repeatIndex(j));
+        arc_length = new_l(repeatIndex(j)) * N(repeatIndex(j));
         arc_radius = arc_length / arc_angle;
         
         arc_center = start_point - PCC_result(i).axis1';

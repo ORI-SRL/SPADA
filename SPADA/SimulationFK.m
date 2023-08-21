@@ -52,7 +52,8 @@ for i = 1:size(assemblyData, 1)
         phi = assemblyData(i,1) - assemblyData(i-1,1);
     end
     theta = uniqueUnitResult(repeatIndex(i));
-    r = assemblyData(i,end)/theta;
+    new_l = (assemblyData(i,end)/theta + assemblyData(i,2) + assemblyData(i,3)/2)*theta;
+    r = new_l/theta;
     Tz = [cos(phi), -sin(phi), 0, 0; sin(phi), cos(phi), 0, 0 ; 0, 0, 1, 0; 0, 0, 0, 1];
     Ty = [cos(theta), 0, sin(theta), -r*(1-cos(theta)); 0, 1, 0, 0; -sin(theta), 0, cos(theta), -r*sin(theta); 0, 0, 0, 1];
     nTz = [cos(-phi), -sin(-phi), 0, 0; sin(-phi), cos(-phi), 0, 0 ; 0, 0, 1, 0; 0, 0, 0, 1];
