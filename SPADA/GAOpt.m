@@ -20,11 +20,11 @@ Segment_curvature = ArcSegment(:,2); % 1/mm
 [min_length, ~] = min(Segment_length);
 
 % x = [ri, t, P, rm1, l1, rm2, l2, ...];
-% BD = [0,100;0,10000];
+
 ro_lb = BD(1,1); 
 ro_ub = BD(1,2);
 P_lb = max(0, BD(2,1));
-P_ub = min(10000, BD(2,2));
+P_ub = min(100000, BD(2,2));
 
 A = zeros(8+9*Segment_num, 3+2*Segment_num);
 b = zeros(8+9*Segment_num, 1);
@@ -36,22 +36,20 @@ ub = zeros(1,3+2*Segment_num);
 % t >= 0 is -x(2) <= 0
 % t <= min_length/4 is x(2) <= min_length/4
 % P >= max(0, BD(2,1)) is -x(3) <= -max(0, BD(2,1))
-% P <= min(10000, BD(2,2)) is x(3) <= min(10000, BD(2,2))
+% P <= min(100000, BD(2,2)) is x(3) <= min(100000, BD(2,2))
 % t >= ri/4 is x(1) - 4x(2) <= 0
 % t < ri/2 is -x(1) + 2x(2) < 0
 A(1,1) = -1;
 A(2,1) = 1;
 b(2) = min(1/max_curvature, ro_ub);
-A(3,2) = -1;
-% to make the wall thickness larger than 1.25mm
-b(3) = -1.25;
-
+A(3,2) = -1; 
+b(3) = -1.5; % to make the wall thickness larger than 1.5mm
 A(4,2) = 1;
 b(4) = min_length/4;
 A(5,3) = -1;
 b(5) = -max(0, BD(2,1));
 A(6,3) = 1;
-b(6) = min(10000, BD(2,2));
+b(6) = min(100000, BD(2,2));
 A(7,1) = 1;
 A(7,2) = -4;
 A(8,1) = -1;
@@ -59,7 +57,8 @@ A(8,2) = 2;
 lb(2) = 1;
 ub(1) = min(1/max_curvature, ro_ub);
 ub(2) = min_length/4;
-ub(3) = min(10000,P_ub);
+ub(3) = min(100000,P_ub);
+
 
 for i = 1:Segment_num
 % rm_lb = max(ri + t, (ri + ro_lb)/2);
@@ -73,7 +72,7 @@ for i = 1:Segment_num
 % 1/Segment_curvature(i)
 % rm <= ri*2 is -2x(1) + x(3+2i-1) <= 0
 % rm <= (ri + ro_ub)/2 is -x(1) + 2x(3+2i-1) < ro_ub
-% l >= 4t is 4x(2) - x(3+2i) <= 0
+% l > 2t is 3x(2) - x(3+2i) <= 0
 % l <= Segment_length(i) is x(3+2i) <= Segment_length(i)
 % l <= 4*ri is -4x(1) + x(3+2i) <= 0
 % l <= 4*(rm-ri) is 4x(1) - 4x(3+2i-1) + x(3+2i) <= 0
@@ -91,7 +90,7 @@ for i = 1:Segment_num
     A(8+9*(i-1)+5,1) = -1;
     A(8+9*(i-1)+5,3+2*(i-1)+1) = 2;
     b(8+9*(i-1)+5) = ro_ub;
-    A(8+9*(i-1)+6,2) = 4;
+    A(8+9*(i-1)+6,2) = 3; % l > 2t is 3x(2) - x(3+2i) <= 0
     A(8+9*(i-1)+6,3+2*(i-1)+2) = -1;
     A(8+9*(i-1)+7,3+2*(i-1)+2) = 1;
     b(8+9*(i-1)+7) = Segment_length(i);
@@ -120,8 +119,9 @@ obj = 0;
 for i = 1:length(Length)
     load NewANN.mat
     unit_angle_ANN = 2*sim(net,[x(1), x(2), x(3+2*(i-1)+1), x(3+2*(i-1)+2), x(3)]');
-    bellow_num = round(Length(i)/x(3+2*(i-1)+2));
-    obj = obj + abs(Length(i) - bellow_num*x(3+2*(i-1)+2))/Length(i) + abs(Curvature(i) - unit_angle_ANN/x(3+2*(i-1)+2))/Curvature(i);
+    new_l = (x(3+2*(i-1)+2)/unit_angle_ANN + x(1) + x(2)/2)*unit_angle_ANN;
+    bellow_num = round(Length(i)/new_l);
+    obj = obj + abs(Length(i) - bellow_num*new_l)/Length(i) + abs(Curvature(i) - unit_angle_ANN/new_l)/Curvature(i);
 end
 objective = obj/length(Length);
 
@@ -139,7 +139,7 @@ switch flag
         ibest = find(state.Score == ibest,1,'last');
         bestx = state.Population(ibest,:);
         bestf = GAObj(bestx, Length, Curvature);
-        if bestf <= 0.02
+        if bestf < 0.0255
             state.StopFlag = 'y';
             disp(bestx);
             disp(['Best function value is ', bestf]);
