@@ -15,7 +15,7 @@ function [PCC_figure, PCC_result] = Biarc_segmentation(bspline, tangential_vecto
 % arcIndex:
 %    list of the points that separate biarcs
 
-tol = 10e-2;
+tol = 10e-4;
 M = bspline;
 T = tangential_vectors;
 
@@ -23,40 +23,51 @@ iIndex = 1;
 eIndex = 3;
 j = 1;
 allArc = [];
-    
+biarc_error = []; 
+arcEnd = [];
+
 while eIndex <= size(M,2)
-    % D =[D ga(@(d1)biarcError (M, T, iIndex, eIndex, d1, tol),1)];
     error = biarcError(M, T, iIndex, eIndex, tol);
-    if error <= accuracy
+    if (error <= accuracy)
         eIndex = eIndex + 1;
+        last_error = error;
         continue;
     else
         eIndex = eIndex - 1;
         Arc = biarc(M, T, iIndex, eIndex, tol);
         allArc = [allArc Arc];
-        error = biarcError(M, T, iIndex, eIndex, tol);
-        
         j = j+1;
+        arcEnd = [arcEnd Arc(end).midPoint' M(:,eIndex)];
         iIndex = eIndex;
         eIndex = iIndex+2;
     end
 end
 eIndex = eIndex - 1;
 allArc = [allArc biarc(M, T, iIndex, eIndex, tol)];
+arcEnd = [arcEnd allArc(end).midPoint' M(:,eIndex)];
 
-% do the classification of the constant curvature segments
+% do the classification of the constant curvature segments: line: type = 1,
+% arc: type = 2
 
-segment = struct('type', {1}, 'center', {[0,0,0]}, 'axis1', {[0,0,0]}, 'axis2', {[0,0,0]}, 'radius', {0}, 'angle', {0}, 'length', {0}, 'rotation', {0});
+segment = struct('type', {2}, 'center', {[0,0,0]}, 'axis1', {[0,0,0]}, 'axis2', {[0,0,0]}, 'radius', {0}, 'angle', {0}, 'length', {0}, 'rotation', {0});
 
 PCC_result = [];
-
 for i = 1: size(allArc,2)
     if isempty(PCC_result)
         PCC_result = [PCC_result BiarcToSegment(allArc(i), segment, i)];
     else
         segment = BiarcToSegment(allArc(i), segment, i);
-        if segment.type == 1 && PCC_result(end).type == 1
+        
+        if ((PCC_result(end).type == 1)&&(segment.type == 1)) || ((PCC_result(end).type == 1) && ((segment.length <= 2.5) && (segment.angle/segment.length <= 2.5e-3))) || ((segment.type == 1) && ((segment.length <= 2.5) && (PCC_result(end).angle/PCC_result(end).length <= 2.5e-3)))
+
             % two lines can be combined
+            if segment.type == 2
+                segmentStart = segment.center + segment.axis1;
+                segmentEnd = segment.center + segment.axis1*cos(segment.angle) + segment.axis2*sin(segment.angle);
+                segment.center = (segmentStart + segmentEnd)/2;
+                segment.axis1 = segmentStart - segment.center;
+            end
+
             comb_segment = struct('type', {1}, 'center', {[0,0,0]}, 'axis1', {[0,0,0]}, 'axis2', {[0,0,0]}, 'radius', {0}, 'angle', {0}, 'length', {0}, 'rotation', {0});
             comb_segment.center = (PCC_result(end).center + PCC_result(end).axis1 + segment.center - segment.axis1)/2;
             comb_segment.axis1 = PCC_result(end).center + PCC_result(end).axis1 - comb_segment.center;
@@ -66,22 +77,37 @@ for i = 1: size(allArc,2)
             comb_segment.length = PCC_result(end).length + segment.length;
             comb_segment.rotation = 0;
             PCC_result(end) = comb_segment; % replace the segment
+
+
             
-        elseif segment.type == 2 && PCC_result(end).type == 2
+        elseif (segment.type == 2) && PCC_result(end).type == 2
             n1 = cross(PCC_result(end).axis1, PCC_result(end).axis2);
             n1 = n1/norm(n1);
             n2 = cross(segment.axis1, segment.axis2);
             n2 = n2/norm(n2);
-            
-            if (norm(cross(n1,n2)) <= tol) && (dot(n1,n2) > 0) && (abs(PCC_result(end).radius - segment.radius)/max(PCC_result(end).radius, segment.radius) <= tol)
+            v1 = PCC_result(end).axis1*cos(PCC_result(end).angle) + PCC_result(end).axis2*sin(PCC_result(end).angle);
+            v2 = segment.axis1;
+
+            if (dot(v1,v2) > 0) && ((PCC_result(end).length <= 2.5)||(segment.length <= 2.5)||((norm(cross(n1,n2)) <= tol) && (dot(n1,n2) > 0) && (abs(PCC_result(end).radius - segment.radius)/max(PCC_result(end).radius, segment.radius) <= 0.1)))
                 % two arcs can be combined
                 comb_segment = struct('type', {2}, 'center', {[0,0,0]}, 'axis1', {[0,0,0]}, 'axis2', {[0,0,0]}, 'radius', {0}, 'angle', {0}, 'length', {0}, 'rotation', {0});
-                comb_segment.center = PCC_result(end).center;
-                comb_segment.axis1 = PCC_result(end).axis1;
-                comb_segment.axis2 = PCC_result(end).axis2;
-                comb_segment.radius = PCC_result(end).radius;
                 comb_segment.angle = PCC_result(end).angle + segment.angle;
                 comb_segment.length = PCC_result(end).length + segment.length;
+                
+                % get the new angle value x for combined arc
+                originalPoint = arcEnd(:,i)';
+                angle_min = double(PCC_result(end).angle)*0;
+                angle_max = double(comb_segment.angle)*1.5;
+%                 angle = ga(@(x) newAngle(x, segment, PCC_result(end), originalPoint), 1, [], [], [], [], angle_min, angle_max);
+                angle = fminbnd(@(x) newAngle(x, segment, PCC_result(end), originalPoint), angle_min, angle_max);
+%                 arcError2 = newAngle(angle, segment, PCC_result(end), originalPoint)
+                
+                % assign new values
+                comb_segment.angle = angle;
+                comb_segment.radius = comb_segment.length/comb_segment.angle;
+                comb_segment.center = PCC_result(end).center + PCC_result(end).axis1 - comb_segment.radius*PCC_result(end).axis1/norm(PCC_result(end).axis1);
+                comb_segment.axis1 = comb_segment.radius*PCC_result(end).axis1/norm(PCC_result(end).axis1);
+                comb_segment.axis2 = comb_segment.radius*PCC_result(end).axis2/norm(PCC_result(end).axis2);
                 comb_segment.rotation = PCC_result(end).rotation;
                 PCC_result(end) = comb_segment; % replace the segment
             else
@@ -90,7 +116,7 @@ for i = 1: size(allArc,2)
                 v2 = -segment.axis1;
                 cos_angle = dot(v1, v2) / (norm(v1) * norm(v2));
                 sin_angle = norm(cross(v1, v2)) / (norm(v1) * norm(v2));
-                segment.rotation = atan2(norm(cross(v1, v2)), dot(v1, v2));% positive (counter-clockwise) or negative (clockwise).
+                segment.rotation = atan2(norm(cross(v1, v2)), dot(v1, v2)); % positive (counter-clockwise) or negative (clockwise).
                 PCC_result = [PCC_result segment];
             end
         else
@@ -100,7 +126,7 @@ for i = 1: size(allArc,2)
         
 end
     function segment = BiarcToSegment(arc, segment, i)
-        if arc.angle <= 0.11 || arc.arcLen <= 1 || arc.angle/arc.arcLen <= 0.011
+        if arc.angle == 0 || arc.angle/arc.arcLen <= 2.5e-3
             % line segment
             segment.type = 1; 
             segment.axis2 = [0,0,0];
@@ -145,84 +171,6 @@ end
         end
     end
 
-% for i = 1:2:size(allArc,2)-1 
-%     if (allArc(i).angle <= 0.05) && (allArc(i+1).angle <= 0.05)
-%         % line segment
-%         segment.type = 1; 
-%         segment.center = allArc(i).midPoint;
-%         segment.axis1 = allArc(i).center + allArc(i).axis1 - segment.center;
-%         segment.axis2 = [0,0,0];
-%         segment.radius = 0;
-%         segment.angle = 0;
-%         segment.length = 2*norm(segment.axis1);
-%         segment.rotation = 0;
-%        
-%         PCC_result = [PCC_result segment];
-%     else
-%         % arc segment
-%         segment.type = 2; 
-%         n1 = cross(allArc(i).axis1, allArc(i).axis2);
-%         n1 = n1/norm(n1);
-%         n2 = cross(allArc(i+1).axis2, allArc(i+1).axis1);
-%         n2 = n2/norm(n2);
-%         if (norm(cross(n1,n2)) <= tol) && (dot(n1,n2) > 0) && (abs(allArc(i).radius - allArc(i+1).radius)/max(allArc(i).radius,allArc(i+1).radius) <= tol)
-%             % two arcs can be combined
-%             segment.center = allArc(i).center;
-%             segment.axis1 = allArc(i).axis1;
-%             segment.axis2 = allArc(i).axis2;
-%             segment.radius = allArc(i).radius;
-%             segment.angle = allArc(i).angle + allArc(i+1).angle;
-%             segment.length = allArc(i).arcLen + allArc(i+1).arcLen;
-%             
-%             if isempty(PCC_result) || PCC_result(end).type == 1
-%                 segment.rotation = 0;
-%             else
-%                 v1 = -(PCC_result(end).axis1*cos(PCC_result(end).angle) + PCC_result(end).axis2*sin(PCC_result(end).angle));
-%                 v2 = -segment.axis1;
-%                 cos_angle = dot(v1, v2) / (norm(v1) * norm(v2));
-%                 sin_angle = norm(cross(v1, v2)) / (norm(v1) * norm(v2));
-%                 segment.rotation = atan2(norm(cross(v1, v2)), dot(v1, v2));% positive (counter-clockwise) or negative (clockwise).
-%             end
-%             PCC_result = [PCC_result segment];
-%         else
-%             % two separate arcs
-%             % i-th 
-%             segment.center = allArc(i).center;
-%             segment.axis1 = allArc(i).axis1;
-%             segment.axis2 = allArc(i).axis2;
-%             segment.radius = allArc(i).radius;
-%             segment.angle = allArc(i).angle;
-%             segment.length = allArc(i).arcLen;
-%             
-%             if isempty(PCC_result) || PCC_result(end).type == 1
-%                 segment.rotation = 0;
-%             else
-%                 v1 = -(PCC_result(end).axis1*cos(PCC_result(end).angle) + PCC_result(end).axis2*sin(PCC_result(end).angle));
-%                 v2 = -segment.axis1;
-%                 cos_angle = dot(v1, v2) / (norm(v1) * norm(v2));
-%                 sin_angle = norm(cross(v1, v2)) / (norm(v1) * norm(v2));
-%                 segment.rotation = atan2(norm(cross(v1, v2)), dot(v1, v2));% positive (counter-clockwise) or negative (clockwise).
-%             end
-%             PCC_result = [PCC_result segment];
-%             
-%             % i+1-th
-%             segment.center = allArc(i+1).center;
-%             segment.axis1 = allArc(i+1).midPoint - segment.center;
-%             segment.axis2 = cross(segment.axis1, cross(allArc(i+1).axis1, allArc(i+1).axis2)/(allArc(i+1).radius)^2);
-%             segment.radius = allArc(i+1).radius;
-%             segment.angle = allArc(i+1).angle;
-%             segment.length = allArc(i+1).arcLen;
-%             
-%             v1 = -(PCC_result(end).axis1*cos(PCC_result(end).angle) + PCC_result(end).axis2*sin(PCC_result(end).angle));
-%             v2 = -segment.axis1;
-%             cos_angle = dot(v1, v2) / (norm(v1) * norm(v2));
-%             sin_angle = norm(cross(v1, v2)) / (norm(v1) * norm(v2));
-%             segment.rotation = atan2(norm(cross(v1, v2)), dot(v1, v2));
-%             
-%             PCC_result = [PCC_result segment];   
-%         end
-%     end  
-% end
 
 PCC_figure = figure('Name', 'Curve Segmentation', 'Visible','off', "NumberTitle", "off");
 screenSize = get(groot, 'ScreenSize');
@@ -255,6 +203,7 @@ for i = 1:size(PCC_result,2)
     end
 end
 bspline_curve = plot3(M(1,:), M(2,:), M(3,:), 'k-', 'LineWidth', 3);
+% plot3(arcEnd(1,:), arcEnd(2,:), arcEnd(3,:), 'ro', 'LineWidth', 3);
 
 % add legend
 if ~isempty(PCC_result)
@@ -269,6 +218,13 @@ end
 hold off
 end
 
+function error = newAngle(angle, segment, PCC_result_end, originalPoint)
+    totalLen = segment.length + PCC_result_end.length;
+    newRadius = totalLen/angle;
+    newCenter = PCC_result_end.center + PCC_result_end.axis1 - newRadius*PCC_result_end.axis1/norm(PCC_result_end.axis1);
+    newPoint = newCenter + newRadius*PCC_result_end.axis1/norm(PCC_result_end.axis1)*cos(angle) + newRadius*PCC_result_end.axis2/norm(PCC_result_end.axis2)*sin(angle);
+    error = norm(originalPoint - newPoint);
+end
 
 function error = biarcError(M, T, iIndex, eIndex, tol)
 Arc = biarc(M, T, iIndex, eIndex, tol);
@@ -276,11 +232,9 @@ E = [];
 midE = [];
 for i = 1:eIndex-iIndex-1
     E = [E [Point2ArcError(Arc(1), M(:,iIndex+i)', tol); Point2ArcError(Arc(2), M(:,iIndex+i)', tol)]];
-%     midE = [midE norm(Arc(2).midPoint - M(:,iIndex+j)')];
 end
 E = min(E,[],1);
-% error = E;
-error = mean(E);
+error = max(E);
 end
 
 function Arc = biarc(M, T, iIndex, eIndex, tol)
