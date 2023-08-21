@@ -49,7 +49,7 @@ When citing SPADA, use this citation:
 
 ```bibtex
 @misc{yao2023spada,
-      title={SPADA: A Toolbox of Designing Soft Pneumatic Actuators for Shape Matching based on the Surrogate Model}, 
+      title={SPADA: A Toolbox of Designing Soft Pneumatic Actuators for Shape Matching based on Surrogate Modeling}, 
       author={Yao Yao and Liang He and Perla Maiolino},
       year={2023},
       eprint={2305.19509},
