@@ -14,7 +14,7 @@ function MatchingCompare(curve, PCC_result, uniqueArc, repeatIndex, optVariable)
 % optVariable:
 %   optimal design parameters for the unique arcs
 
-% 0bjective value: 0.0156: optVariable = [2.52037209777459,1.03624595483529,4186.01721039465,5.02719882050958,4.65658381049268,5.03645724753291,4.80413318584171]
+
 ri = optVariable(1);
 t = optVariable(2);
 P = optVariable(3); % Pa
